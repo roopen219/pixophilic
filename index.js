@@ -153,13 +153,13 @@ async function getSnapshotDiffForCommitsAndUpdateCheckRun({
     }
 }
 
-setInterval(() => {
-    console.log('-------------Memory usage-------------');
-    const used = process.memoryUsage();
-    for (let key in used) {
-        console.log(`${key} ${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`);
-    }
-}, 5000);
+// setInterval(() => {
+//     console.log('-------------Memory usage-------------');
+//     const used = process.memoryUsage();
+//     for (let key in used) {
+//         console.log(`${key} ${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`);
+//     }
+// }, 5000);
 
 module.exports = app => {
     app.log('Yay, the app was loaded!');
