@@ -155,9 +155,6 @@ async function compareSnapshots({
 
 module.exports = {
     btoa,
-    unarchiveSnapshots,
-    getSnapshotFiles,
-    getLastUpdateCommitFromLockFile,
     getLatestSnapshotFilesAndExtractToFilesystem,
     compareSnapshots
 };

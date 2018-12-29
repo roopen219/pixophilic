@@ -17,14 +17,13 @@ const storePullRequestReference = require('./redis').storePullRequestReference;
 const getCommitInfo = require('./redis').getCommitInfo;
 const storeCommitInfo = require('./redis').storeCommitInfo;
 
-const pixophilicLockFilePathOnGithub = process.env.LOCK_FILE_PATH;
-
 async function getSnapshotDiffForCommits({
     owner,
     repo,
     github,
     currentHeadCommitSha,
-    baseHeadCommitSha
+    baseHeadCommitSha,
+    pixophilicLockFilePathOnGithub
 }) {
     const currentBranchLockFile = await getFile(github, {
         owner,
@@ -96,14 +95,16 @@ async function getSnapshotDiffForCommitsAndUpdateCheckRun({
     currentHeadCommitSha,
     owner,
     repo,
-    github
+    github,
+    pixophilicLockFilePathOnGithub
 }) {
     const diffFiles = await getSnapshotDiffForCommits({
         baseHeadCommitSha,
         currentHeadCommitSha,
         owner,
         repo,
-        github
+        github,
+        pixophilicLockFilePathOnGithub
     });
 
     if (diffFiles.total) {
@@ -152,6 +153,14 @@ async function getSnapshotDiffForCommitsAndUpdateCheckRun({
     }
 }
 
+setInterval(() => {
+    console.log('-------------Memory usage-------------');
+    const used = process.memoryUsage();
+    for (let key in used) {
+        console.log(`${key} ${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`);
+    }
+}, 5000);
+
 module.exports = app => {
     app.log('Yay, the app was loaded!');
 
@@ -170,6 +179,7 @@ module.exports = app => {
         ],
         async context => {
             const { pull_request } = context.payload;
+            const pixophilicLockFilePathOnGithub = process.env.LOCK_FILE_PATH;
 
             const currentHeadCommitSha = pull_request.head.sha;
             const baseHeadCommitSha = pull_request.base.sha;
@@ -234,7 +244,8 @@ module.exports = app => {
                     baseHeadCommitSha,
                     currentHeadCommitSha,
                     repo,
-                    owner
+                    owner,
+                    pixophilicLockFilePathOnGithub
                 });
             } catch (e) {
                 if (e.status === 'Not Found') {
@@ -333,6 +344,8 @@ module.exports = app => {
             const { owner, repo } = commitInfo;
             const currentHeadCommitSha = req.params.sha;
 
+            const pixophilicLockFilePathOnGithub = process.env.LOCK_FILE_PATH;
+
             if (commitInfo.runStatus === 'in_progress') {
                 const pullRequestRef = await getPullRequestReferences(
                     currentHeadCommitSha
@@ -355,7 +368,8 @@ module.exports = app => {
                             currentHeadCommitSha,
                             owner,
                             repo,
-                            github
+                            github,
+                            pixophilicLockFilePathOnGithub
                         });
                     } catch (e) {
                         next(e);
