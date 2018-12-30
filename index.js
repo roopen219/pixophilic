@@ -197,7 +197,7 @@ module.exports = app => {
                 owner,
                 repo,
                 status: 'in_progress',
-                conclusion: null,
+                conclusion: '',
                 head_sha: currentHeadCommitSha
             });
 
