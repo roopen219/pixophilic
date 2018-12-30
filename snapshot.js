@@ -104,53 +104,89 @@ async function compareSnapshots({
 
     const imageComparisonThreshold = 300;
 
-    let diffFiles = await Promise.all(
-        snapshotsToCompare.map(relativePath => {
-            return new Promise((resolve, reject) => {
-                const diffFilePath = `${diffPath}${nanoid(5)}-${_.last(
-                    relativePath.split('/')
-                )}`;
-
-                const diff = new BlinkDiff({
-                    imageAPath: `${baseSnapshotPath}${relativePath}`,
-                    imageBPath: `${currentSnapshotPath}${relativePath}`,
-
-                    thresholdType: BlinkDiff.THRESHOLD_PIXEL,
-                    threshold: imageComparisonThreshold,
-
-                    imageOutputPath: diffFilePath,
-                    imageOutputLimit: BlinkDiff.OUTPUT_DIFFERENT,
-
-                    composeLeftToRight: true
-                });
-
-                diff.run(function(error, result) {
-                    if (error) {
-                        return reject(error);
-                    }
-
-                    if (result.differences >= imageComparisonThreshold) {
-                        resolve({
-                            filePath: diffFilePath,
-                            displayPath: relativePath
-                        });
-                    } else {
-                        resolve('');
-                    }
-                });
-            });
-        })
-    );
+    let diffFiles = await _compareSnapshots(snapshotsToCompare, {
+        diffPath,
+        currentSnapshotPath,
+        baseSnapshotPath,
+        imageComparisonThreshold
+    });
 
     diffFiles = _.compact(diffFiles);
 
     return {
-        total: diffFiles.length + snapshotsOnlyInBase.length + snapshotsOnlyInCurrent.length,
+        total:
+            diffFiles.length +
+            snapshotsOnlyInBase.length +
+            snapshotsOnlyInCurrent.length,
         all: [...diffFiles, ...snapshotsOnlyInCurrent, ...snapshotsOnlyInBase],
         different: diffFiles,
         notInCurrent: snapshotsOnlyInBase,
         notInBase: snapshotsOnlyInCurrent
     };
+}
+
+async function _compareSnapshots(
+    snapshotsToCompare,
+    {
+        diffPath,
+        baseSnapshotPath,
+        currentSnapshotPath,
+        imageComparisonThreshold
+    },
+    result = []
+) {
+    if (_.isEmpty(snapshotsToCompare)) {
+        return result;
+    }
+
+    const relativePath = snapshotsToCompare[0];
+
+    const diffResult = await new Promise((resolve, reject) => {
+        const diffFilePath = `${diffPath}${nanoid(5)}-${_.last(
+            relativePath.split('/')
+        )}`;
+
+        const diff = new BlinkDiff({
+            imageAPath: `${baseSnapshotPath}${relativePath}`,
+            imageBPath: `${currentSnapshotPath}${relativePath}`,
+
+            thresholdType: BlinkDiff.THRESHOLD_PIXEL,
+            threshold: imageComparisonThreshold,
+
+            imageOutputPath: diffFilePath,
+            imageOutputLimit: BlinkDiff.OUTPUT_DIFFERENT,
+
+            composeLeftToRight: true
+        });
+
+        diff.run(function(error, result) {
+            if (error) {
+                return reject(error);
+            }
+
+            if (result.differences >= imageComparisonThreshold) {
+                resolve({
+                    filePath: diffFilePath,
+                    displayPath: relativePath
+                });
+            } else {
+                resolve('');
+            }
+        });
+    });
+
+    result.push(diffResult);
+
+    return _compareSnapshots(
+        _.tail(snapshotsToCompare),
+        {
+            diffPath,
+            baseSnapshotPath,
+            currentSnapshotPath,
+            imageComparisonThreshold
+        },
+        result
+    );
 }
 
 module.exports = {
