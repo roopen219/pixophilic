@@ -79,10 +79,16 @@ async function createOrUpdateCheckRunAndStoreRef(github, checkRunOptions) {
 
     console.log('Commit Info Has Images: ', commitInfo.hasImages);
     console.log('Reverting To Diff: ', isRevertingToDifferentStatusAfterComplete);
+
+    const hasNewImages = !_.isEmpty(
+        _.get(params, 'output.images')
+    );
+    const hasOldImages = commitInfo.hasImages === 'true';
+
     const shouldUpdate =
         commitInfo.runId &&
         !isRevertingToDifferentStatusAfterComplete &&
-        commitInfo.hasImages !== 'true';
+        (!hasOldImages || !hasNewImages);
 
     if (shouldUpdate) {
         console.log(`Updating check run: ${commitInfo.runId}`);
@@ -102,10 +108,8 @@ async function createOrUpdateCheckRunAndStoreRef(github, checkRunOptions) {
         conclusion: checkResult.conclusion
     };
 
-    if (!shouldUpdate || commitInfo.hasImages !== 'true') {
-        updatedCommitInfo.hasImages = !_.isEmpty(
-            _.get(params, 'output.images')
-        );
+    if (!shouldUpdate || !hasOldImages) {
+        updatedCommitInfo.hasImages = hasNewImages;
     }
 
     return storeCommitInfo(params.head_sha, updatedCommitInfo);
