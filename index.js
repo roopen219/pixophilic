@@ -158,7 +158,7 @@ async function getSnapshotDiffForCommitsAndUpdateCheckRun({
                         : 'snapshots update'
                 }`,
                 summary:
-                    'These snapshot(s) will be updated in the base branch _AFTER_ merging the PR. You can see the changes for each snapshot below (base version is on the left and the updated one is on the right).',
+                    'These snapshot(s) will be updated in the base branch *AFTER* merging the PR. You can see the changes for each snapshot below (base version is on the left and the updated one is on the right).',
                 images: diffFiles.all.map(diff => {
                     return {
                         alt: diff.displayPath,
@@ -357,7 +357,8 @@ module.exports = app => {
                         repo: commitInfo.repo,
                         head_sha: req.params.sha,
                         output: {
-                            title: `${commitInfo.totalDiff} snapshot(s) will be updated after merge`
+                            title: `${commitInfo.totalDiff} snapshot(s) will be updated after merge`,
+                            summary: 'These snapshot(s) will be updated in the base branch *AFTER* merging the PR. You can see the changes for each snapshot below (base version is on the left and the updated one is on the right).'
                         },
                         status: 'completed',
                         conclusion: 'success'
