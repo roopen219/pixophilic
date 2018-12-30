@@ -40,7 +40,9 @@ async function getSnapshotDiffForCommits({
     });
 
     if (currentBranchLockFile !== baseBranchLockFile) {
-        const currentShaPath = `${process.env.SNAPSHOT_FOLDER}/${currentHeadCommitSha}`;
+        const currentShaPath = `${
+            process.env.SNAPSHOT_FOLDER
+        }/${currentHeadCommitSha}`;
         const currentSnapshotPath = `${currentShaPath}/current`;
         const baseSnapshotPath = `${currentShaPath}/base`;
         const diffPath = `${currentShaPath}/__diff__/`;
@@ -72,11 +74,16 @@ async function createOrUpdateCheckRunAndStoreRef(github, checkRunOptions) {
     let params = checkRunOptions;
 
     const isNewStatusCompleted = params.status === 'completed';
-    const isRevertingToDifferentStatusAfterComplete = !isNewStatusCompleted && commitInfo.runStatus === 'completed';
+    const isRevertingToDifferentStatusAfterComplete =
+        !isNewStatusCompleted && commitInfo.runStatus === 'completed';
 
-    const doesNotHaveNewImages = _.isEmpty(_.get(params, 'output.images'));
+    const hasImages = !_.isEmpty(_.get(params, 'output.images'));
 
-    if (commitInfo.runId && !isRevertingToDifferentStatusAfterComplete && doesNotHaveNewImages) {
+    if (
+        commitInfo.runId &&
+        !isRevertingToDifferentStatusAfterComplete &&
+        commitInfo.hasImages === 'false'
+    ) {
         console.log(`Updating check run: ${commitInfo.runId}`);
         method = updateCheckRun;
         params = { ...params, check_run_id: commitInfo.runId };
@@ -91,7 +98,8 @@ async function createOrUpdateCheckRunAndStoreRef(github, checkRunOptions) {
     return storeCommitInfo(params.head_sha, {
         runId: checkResult.id,
         runStatus: checkResult.status,
-        conclusion: checkResult.conclusion
+        conclusion: checkResult.conclusion,
+        hasImages
     });
 }
 
@@ -133,7 +141,9 @@ async function getSnapshotDiffForCommitsAndUpdateCheckRun({
                 images: diffFiles.all.map(diff => {
                     return {
                         alt: diff.displayPath,
-                        image_url: `https://${process.env.S3_BUCKET}.s3.amazonaws.com/__diff__/${currentHeadCommitSha}:${baseHeadCommitSha}${
+                        image_url: `https://${
+                            process.env.S3_BUCKET
+                        }.s3.amazonaws.com/__diff__/${currentHeadCommitSha}:${baseHeadCommitSha}${
                             diff.displayPath
                         }`,
                         caption: diff.displayPath
