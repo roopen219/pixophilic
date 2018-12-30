@@ -77,6 +77,8 @@ async function createOrUpdateCheckRunAndStoreRef(github, checkRunOptions) {
     const isRevertingToDifferentStatusAfterComplete =
         !isNewStatusCompleted && commitInfo.runStatus === 'completed';
 
+    console.log('Commit Info Has Images: ', commitInfo.hasImages);
+    console.log('Reverting To Diff: ', isRevertingToDifferentStatusAfterComplete);
     const shouldUpdate =
         commitInfo.runId &&
         !isRevertingToDifferentStatusAfterComplete &&
