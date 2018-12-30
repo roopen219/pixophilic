@@ -72,7 +72,7 @@ async function createOrUpdateCheckRunAndStoreRef(github, checkRunOptions) {
     let params = checkRunOptions;
     const isStatusCompleted = params.status === 'completed';
 
-    if (commitInfo.runId && !_.isEmpty(_.get(params, 'output.images'))) {
+    if (commitInfo.runId && _.isEmpty(_.get(params, 'output.images'))) {
         console.log(`Updating check run: ${commitInfo.runId}`);
         method = updateCheckRun;
         params = { ...params, check_run_id: commitInfo.runId };
