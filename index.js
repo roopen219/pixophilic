@@ -68,7 +68,11 @@ async function getSnapshotDiffForCommits({
     };
 }
 
-async function createOrUpdateCheckRunAndStoreRef(github, checkRunOptions) {
+async function createOrUpdateCheckRunAndStoreRef(
+    github,
+    checkRunOptions,
+    extraParams = {}
+) {
     const commitInfo = (await getCommitInfo(checkRunOptions.head_sha)) || {};
     let method = createCheckRun;
     let params = checkRunOptions;
@@ -78,11 +82,12 @@ async function createOrUpdateCheckRunAndStoreRef(github, checkRunOptions) {
         !isNewStatusCompleted && commitInfo.runStatus === 'completed';
 
     console.log('Commit Info Has Images: ', commitInfo.hasImages);
-    console.log('Reverting To Diff: ', isRevertingToDifferentStatusAfterComplete);
-
-    const hasNewImages = !_.isEmpty(
-        _.get(params, 'output.images')
+    console.log(
+        'Reverting To Diff: ',
+        isRevertingToDifferentStatusAfterComplete
     );
+
+    const hasNewImages = !_.isEmpty(_.get(params, 'output.images'));
     const hasOldImages = commitInfo.hasImages === 'true';
 
     const shouldUpdate =
@@ -105,7 +110,8 @@ async function createOrUpdateCheckRunAndStoreRef(github, checkRunOptions) {
     let updatedCommitInfo = {
         runId: checkResult.id,
         runStatus: checkResult.status,
-        conclusion: checkResult.conclusion
+        conclusion: checkResult.conclusion,
+        ...extraParams
     };
 
     if (!shouldUpdate || !hasOldImages) {
@@ -146,10 +152,13 @@ async function getSnapshotDiffForCommitsAndUpdateCheckRun({
             status: 'completed',
             conclusion: 'action_required',
             output: {
-                title: `${diffFiles.total} ${
-                    diffFiles.total === 1 ? 'snapshot' : 'snapshots'
-                } will be updated`,
-                summary: 'View the differences below',
+                title: `Confirm ${diffFiles.total} ${
+                    diffFiles.total === 1
+                        ? 'snapshot update'
+                        : 'snapshots update'
+                }`,
+                summary:
+                    'These snapshot(s) will be updated in the base branch _AFTER_ merging the PR. You can see the changes for each snapshot below (base version is on the left and the updated one is on the right).',
                 images: diffFiles.all.map(diff => {
                     return {
                         alt: diff.displayPath,
@@ -164,7 +173,9 @@ async function getSnapshotDiffForCommitsAndUpdateCheckRun({
             }
         };
 
-        await createOrUpdateCheckRunAndStoreRef(github, params);
+        await createOrUpdateCheckRunAndStoreRef(github, params, {
+            totalDiff: diffFiles.total
+        });
     } else {
         await createOrUpdateCheckRunAndStoreRef(github, {
             owner,
@@ -345,6 +356,9 @@ module.exports = app => {
                         owner: commitInfo.owner,
                         repo: commitInfo.repo,
                         head_sha: req.params.sha,
+                        output: {
+                            title: `${commitInfo.totalDiff} snapshot(s) will be updated after merge`
+                        },
                         status: 'completed',
                         conclusion: 'success'
                     });
@@ -352,7 +366,9 @@ module.exports = app => {
                     return next(e);
                 }
 
-                return res.send('✅ Resolved. Check should be green.');
+                return res.send(
+                    '✅ Ok. Snapshots will be updated in base branch AFTER merging the PR.'
+                );
             }
 
             if (isCheckComplete && !isActionRequired) {
