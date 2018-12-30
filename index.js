@@ -77,13 +77,12 @@ async function createOrUpdateCheckRunAndStoreRef(github, checkRunOptions) {
     const isRevertingToDifferentStatusAfterComplete =
         !isNewStatusCompleted && commitInfo.runStatus === 'completed';
 
-    const hasImages = !_.isEmpty(_.get(params, 'output.images'));
-
-    if (
+    const shouldUpdate =
         commitInfo.runId &&
         !isRevertingToDifferentStatusAfterComplete &&
-        commitInfo.hasImages === 'false'
-    ) {
+        commitInfo.hasImages !== 'true';
+
+    if (shouldUpdate) {
         console.log(`Updating check run: ${commitInfo.runId}`);
         method = updateCheckRun;
         params = { ...params, check_run_id: commitInfo.runId };
@@ -95,12 +94,19 @@ async function createOrUpdateCheckRunAndStoreRef(github, checkRunOptions) {
 
     const checkResult = (await method(github, params)).data;
 
-    return storeCommitInfo(params.head_sha, {
+    let updatedCommitInfo = {
         runId: checkResult.id,
         runStatus: checkResult.status,
-        conclusion: checkResult.conclusion,
-        hasImages
-    });
+        conclusion: checkResult.conclusion
+    };
+
+    if (commitInfo.hasImages !== 'true') {
+        updatedCommitInfo.hasImages = !_.isEmpty(
+            _.get(params, 'output.images')
+        );
+    }
+
+    return storeCommitInfo(params.head_sha, updatedCommitInfo);
 }
 
 async function getSnapshotDiffForCommitsAndUpdateCheckRun({
