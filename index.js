@@ -196,7 +196,7 @@ module.exports = app => {
             await createOrUpdateCheckRunAndStoreRef(github, {
                 owner,
                 repo,
-                status: 'queued',
+                status: 'in_progress',
                 head_sha: currentHeadCommitSha
             });
 
