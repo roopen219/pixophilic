@@ -100,7 +100,7 @@ async function createOrUpdateCheckRunAndStoreRef(github, checkRunOptions) {
         conclusion: checkResult.conclusion
     };
 
-    if (commitInfo.hasImages !== 'true') {
+    if (!shouldUpdate || commitInfo.hasImages !== 'true') {
         updatedCommitInfo.hasImages = !_.isEmpty(
             _.get(params, 'output.images')
         );
