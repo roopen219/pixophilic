@@ -70,17 +70,19 @@ async function createOrUpdateCheckRunAndStoreRef(github, checkRunOptions) {
     const commitInfo = (await getCommitInfo(checkRunOptions.head_sha)) || {};
     let method = createCheckRun;
     let params = checkRunOptions;
-    const isStatusCompleted = params.status === 'completed';
 
-    if (commitInfo.runId && _.isEmpty(_.get(params, 'output.images'))) {
+    const isNewStatusCompleted = params.status === 'completed';
+    const isRevertingToDifferentStatusAfterComplete = !isNewStatusCompleted && commitInfo.runStatus === 'completed';
+
+    const doesNotHaveNewImages = _.isEmpty(_.get(params, 'output.images'));
+
+    if (commitInfo.runId && !isRevertingToDifferentStatusAfterComplete && doesNotHaveNewImages) {
         console.log(`Updating check run: ${commitInfo.runId}`);
         method = updateCheckRun;
         params = { ...params, check_run_id: commitInfo.runId };
     }
 
-    console.log('Creating check run');
-
-    if (isStatusCompleted) {
+    if (isNewStatusCompleted) {
         params.completed_at = moment().toISOString();
     }
 
@@ -196,8 +198,7 @@ module.exports = app => {
             await createOrUpdateCheckRunAndStoreRef(github, {
                 owner,
                 repo,
-                status: 'in_progress',
-                conclusion: '',
+                status: 'queued',
                 head_sha: currentHeadCommitSha
             });
 
